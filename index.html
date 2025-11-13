@@ -2,79 +2,49 @@
 <html lang="sk">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mini Health (s GPS)</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mini Health Map</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js" defer></script>
 </head>
+
 <body>
   <header>
-    <h1>Mini Health</h1>
-    <p class="sub">Zaznamenaj aktivitu pomocou GPS — beh, chôdza, bicykel</p>
+    <h1>Mini Health s Mapou</h1>
+    <p class="sub">Sleduj trasu, vzdialenosť, rýchlosť a kroky v reálnom čase</p>
   </header>
 
   <main>
-    <section class="dashboard">
-      <div class="card">
-        <h2>Aktuálna aktivita</h2>
-        <div class="row">
-          <label>Typ: 
-            <select id="activityType">
-              <option value="running">Beh</option>
-              <option value="walking">Chôdza</option>
-              <option value="cycling">Bicykel</option>
-            </select>
-          </label>
-        </div>
-        <div class="row metrics">
-          <div>
-            <div class="big" id="time">00:00:00</div>
-            <small>Čas</small>
-          </div>
-          <div>
-            <div class="big" id="distance">0.00 km</div>
-            <small>Vzdialenosť</small>
-          </div>
-          <div>
-            <div class="big" id="speed">0.0 km/h</div>
-            <small>Aktuálna rýchlosť</small>
-          </div>
-        </div>
-
-        <div class="row controls">
-          <button id="startBtn">Štart</button>
-          <button id="stopBtn" disabled>Stop</button>
-          <button id="saveBtn" disabled>Uložiť</button>
-        </div>
-
-        <div id="gpsStatus" class="status">GPS pripravené: čaká na štart</div>
+    <section class="card">
+      <div class="metrics">
+        <div><strong>Čas:</strong> <span id="time">00:00:00</span></div>
+        <div><strong>Vzdialenosť:</strong> <span id="distance">0.00 km</span></div>
+        <div><strong>Rýchlosť:</strong> <span id="speed">0.0 km/h</span></div>
+        <div><strong>Kroky:</strong> <span id="steps">0</span></div>
       </div>
 
-      <div class="card">
-        <h2>Snímky zdravia</h2>
-        <div class="row">
-          <label>Pulz (bpm):
-            <input type="number" id="hrInput" min="30" max="220" placeholder="72">
-          </label>
-        </div>
-        <div class="row">
-          <label>Kroky (manuálne):
-            <input type="number" id="stepsInput" min="0" placeholder="0">
-          </label>
-          <button id="saveSnapshot">Uložiť snímku</button>
-        </div>
-        <div id="lastSnapshot" class="status">Žiadne snímky</div>
+      <div class="controls">
+        <select id="activityType">
+          <option value="walking">Chôdza</option>
+          <option value="running">Beh</option>
+          <option value="cycling">Bicykel</option>
+        </select>
+        <button id="startBtn">Štart</button>
+        <button id="stopBtn" disabled>Stop</button>
+        <button id="saveBtn" disabled>Uložiť</button>
       </div>
+
+      <p id="gpsStatus" class="status">GPS pripravené...</p>
     </section>
 
     <section class="card">
-      <h2>Trasa (body)</h2>
-      <div id="points" class="points">Žiadne GPS body</div>
-      <div class="row">
-        <button id="downloadBtn" disabled>Stiahnuť trasu (JSON)</button>
-        <button id="clearBtn">Vymazať miestne údaje</button>
-      </div>
-      <small>Ak chceš zobraziť mapu, môžeš exportovať JSON a nahrať do Google Maps / iného nástroja.</small>
+      <h2>Mapa trasy</h2>
+      <div id="map"></div>
     </section>
 
     <section class="card">
@@ -84,7 +54,7 @@
   </main>
 
   <footer>
-    <small>Táto aplikácia je demo — vyžaduje povolenie GPS. Dáta sa ukladajú len lokálne (localStorage).</small>
+    <small>© 2025 Mini Health Demo — Dáta sa ukladajú len lokálne</small>
   </footer>
 </body>
 </html>
