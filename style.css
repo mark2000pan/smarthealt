@@ -1,27 +1,37 @@
-:root{--bg:#0f1720;--card:#102333;--accent:#28a0f0;--muted:#98a3ad;--glass:rgba(255,255,255,0.03)}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#061019, #071729);color:#e6f0f8}
-header{padding:18px 20px}
-header h1{margin:0;font-size:22px}
-.sub{margin:6px 0 0;color:var(--muted)}
-
-main{padding:16px;display:grid;grid-template-columns:1fr 360px;gap:16px}
-.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(2,6,12,0.6);min-height:80px}
-.dashboard{display:flex;flex-direction:column;gap:12px}
-.row{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
-.metrics{justify-content:space-between}
-.big{font-size:20px;font-weight:700}
-.controls button{padding:10px 14px;border-radius:8px;border:0;background:var(--accent);color:#042533;cursor:pointer}
-.controls button[disabled]{opacity:.4;cursor:not-allowed}
-.status{margin-top:10px;color:var(--muted);font-size:13px}
-#points{max-height:150px;overflow:auto;padding:8px;background:var(--glass);border-radius:8px;font-family:monospace;font-size:13px}
-footer{padding:12px 16px;color:var(--muted)}
-#history{list-style:none;padding:0;margin:0;max-height:220px;overflow:auto}
-#history li{padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);margin-bottom:8px;display:flex;justify-content:space-between}
-label{font-size:14px}
-input, select{padding:8px;border-radius:8px;border:0;background:#0b1a24;color:#e6f0f8}
-button{background:linear-gradient(180deg,var(--accent),#0aa3ef);border:0;color:#042533;padding:8px 10px;border-radius:8px;cursor:pointer}
-button[disabled]{opacity:.4;cursor:not-allowed}
-@media (max-width:900px){
-  main{grid-template-columns:1fr; padding:10px}
+:root {
+  --bg: #0b1220;
+  --card: #142034;
+  --accent: #28a0f0;
+  --text: #e6f0f8;
 }
+* { box-sizing: border-box; }
+
+body {
+  font-family: Inter, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+}
+header {
+  padding: 18px 20px;
+  background: #101b2f;
+}
+header h1 { margin: 0; font-size: 22px; }
+.sub { color: #9ba8b6; font-size: 14px; }
+
+main { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.metrics { display: flex; flex-wrap: wrap; gap: 16px; font-size: 16px; }
+.controls { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
+button {
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: #001a2b;
+  font-weight: bold;
+  padding: 10px 16px
