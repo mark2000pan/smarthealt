@@ -1,37 +1,229 @@
-:root {
-  --bg: #0b1220;
-  --card: #142034;
-  --accent: #28a0f0;
-  --text: #e6f0f8;
-}
-* { box-sizing: border-box; }
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Step Counter App</title>
+  <link rel="icon" href="http://u.cubeupload.com/pavelwacky/footstepsblk.png" type="image/x-icon"> 
 
-body {
-  font-family: Inter, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  margin: 0;
-}
-header {
-  padding: 18px 20px;
-  background: #101b2f;
-}
-header h1 { margin: 0; font-size: 22px; }
-.sub { color: #9ba8b6; font-size: 14px; }
+  <!-- ArcGIS -->
+  <link rel="stylesheet" href="https://js.arcgis.com/4.11/esri/css/main.css">
+  <script src="https://js.arcgis.com/4.11/"></script>
 
-main { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-.card {
-  background: var(--card);
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-}
-.metrics { display: flex; flex-wrap: wrap; gap: 16px; font-size: 16px; }
-.controls { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
-button {
-  background: var(--accent);
-  border: none;
-  border-radius: 8px;
-  color: #001a2b;
-  font-weight: bold;
-  padding: 10px 16px
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Staatliches&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+      font-family: "Open Sans", sans-serif;
+      background: linear-gradient(145deg, #081221 0%, #0e1c31 100%);
+      color: #e8f0fa;
+      overflow: hidden;
+    }
+
+    /* Panel s názvom hore */
+    #paneDiv {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      background: linear-gradient(90deg, #2b8bd6, #7f53ac);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+
+    #paneDiv img {
+      width: 34px;
+      height: 34px;
+      margin-right: 10px;
+      filter: invert(100%);
+    }
+
+    #paneDiv h1 {
+      font-family: "Staatliches", sans-serif;
+      font-size: 26px;
+      letter-spacing: 1px;
+      color: #fff;
+      margin: 0;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+
+    /* Hlavná mapa */
+    #viewDiv {
+      height: 100%;
+      width: 100%;
+    }
+
+    /* Panel s výsledkami (distance, steps, calories) */
+    #bebas {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      min-width: 280px;
+      max-width: 400px;
+      background: rgba(15, 25, 45, 0.9);
+      backdrop-filter: blur(6px);
+      color: #fff;
+      border-radius: 14px;
+      padding: 16px 20px;
+      font-size: 16px;
+      line-height: 1.6;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    #bebas b {
+      color: #28a0f0;
+    }
+
+    /* Hover efekty pre tlačidlá ArcGIS */
+    .esri-widget button {
+      border-radius: 8px !important;
+      background-color: #1a2942 !important;
+      color: white !important;
+      transition: 0.2s;
+    }
+    .esri-widget button:hover {
+      background-color: #28a0f0 !important;
+      color: #000 !important;
+    }
+
+    /* Scrollbary pre directions */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px;
+    }
+
+    /* Text animácia po zistení trasy */
+    #bebas.show {
+      animation: fadeInUp 0.6s ease forwards;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+
+  <div id="paneDiv">
+    <img src="http://u.cubeupload.com/pavelwacky/footstep.png" alt="icon">
+    <h1>Count Your Steps Now!</h1>
+  </div>
+
+  <div id="bebas"></div>
+
+  <script>  
+    var map, view, routeTask, routeParams, directions, features, distance, step, cal;
+
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/tasks/RouteTask",
+      "esri/tasks/support/RouteParameters",
+      "esri/tasks/support/FeatureSet",
+      "esri/Graphic",
+      "esri/widgets/Search",
+      "esri/widgets/Locate",
+      "esri/symbols/PictureMarkerSymbol"
+    ], function(Map, MapView, RouteTask, RouteParameters, FeatureSet, Graphic, Search, Locate, PictureMarkerSymbol) {
+
+      const map = new Map({ basemap: "streets-navigation-vector" });
+
+      const view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [17.12, 48.15],
+        zoom: 13
+      });
+
+      const routeTask = new RouteTask({
+        url: "https://utility.arcgis.com/usrsvcs/appservices/g9AuxTQPEgzAy5f3/rest/services/World/Route/NAServer/Route_World/solve"
+      });
+
+      const walkmode = {
+        "type": "WALK",
+        "id": "walking",
+        "name": "Walking Distance",
+        "timeAttributeName": "WalkTime",
+        "distanceAttributeName": "Kilometers",
+        "impedanceAttributeName": "Kilometers",
+        "useHierarchy": false
+      };
+
+      const searchWidget = new Search({ view });
+      view.ui.add(searchWidget, "top-right");
+
+      const locateBtn = new Locate({ view });
+      view.ui.add(locateBtn, "top-left");
+
+      view.on("click", function(event) {
+        if (view.graphics.length === 0) {
+          addGraphic("start", event.mapPoint);
+        } else if (view.graphics.length === 1) {
+          addGraphic("finish", event.mapPoint);
+          getRoute();
+        } else {
+          view.graphics.removeAll();
+          addGraphic("start", event.mapPoint);
+        }
+      });
+
+      function addGraphic(type, point) {
+        const graphic = new Graphic({
+          symbol: {
+            type: "simple-marker",
+            color: (type === "start") ? "#75b9be" : "#9991bf",
+            size: "10px"
+          },
+          geometry: point
+        });
+        view.graphics.add(graphic);
+      }
+
+      function getRoute() {
+        routeParams = new RouteParameters({
+          stops: new FeatureSet({ features: view.graphics.toArray() }),
+          travelMode: walkmode,
+          returnDirections: true
+        });
+
+        routeTask.solve(routeParams).then(function(data) {
+          distance = data.routeResults[0].directions.totalLength * 1609.344;
+          step = Math.trunc(distance / 0.762);
+          cal = Math.trunc(step * 0.04);
+
+          data.routeResults.forEach(function(result) {
+            result.route.symbol = {
+              type: "simple-line",
+              color: [40, 160, 240, 0.7],
+              width: 5
+            };
+            view.graphics.add(result.route);
+          });
+
+          const directionsBox = document.getElementById("bebas");
+          directionsBox.innerHTML = `
+            You will walk for <b>${distance.toFixed(0)}</b> meters,<br>
+            <b>${step}</b> steps and burn approximately<br>
+            <b>${cal}</b> calories.`;
+          directionsBox.classList.add("show");
+        });
+      }
+    });
+  </script>
+</body>
+</html>
