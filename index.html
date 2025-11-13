@@ -1,170 +1,90 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="sk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Krokomer & Antioxidant & BMI</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 2rem;
-            background-color: #f0f4f8;
-        }
-        h1 {
-            color: #2c3e50;
-        }
-        #dashboard {
-            margin-top: 2rem;
-        }
-        .metric {
-            font-size: 1.5rem;
-            margin: 1rem 0;
-        }
-        button {
-            padding: 0.5rem 1rem;
-            font-size: 1rem;
-            border: none;
-            border-radius: 8px;
-            background-color: #3498db;
-            color: white;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        input {
-            padding: 0.3rem;
-            width: 60px;
-            margin: 0 5px;
-            text-align: center;
-        }
-        .bmi-result {
-            margin-top: 0.5rem;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini Health (s GPS)</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
-    <h1>Fitness Dashboard</h1>
+  <header>
+    <h1>Mini Health</h1>
+    <p class="sub">Zaznamenaj aktivitu pomocou GPS — beh, chôdza, bicykel</p>
+  </header>
 
-    <div id="dashboard">
-        <div class="metric">Kroky: <span id="steps">0</span></div>
-        <div class="metric">Index antioxidantov: <span id="antioxidant">75</span></div>
-        <button onclick="updateAntioxidant()">Aktualizovať antioxidant</button>
-
-        <hr style="margin: 2rem 0;">
-
-        <div class="metric">
-            <h2>BMI Kalkulačka</h2>
-            <label>Výška (cm): <input type="number" id="height" placeholder="170"></label>
-            <label>Váha (kg): <input type="number" id="weight" placeholder="70"></label>
-            <button onclick="calculateBMI()">Spočítať BMI</button>
-            <div class="bmi-result" id="bmiResult"></div>
+  <main>
+    <section class="dashboard">
+      <div class="card">
+        <h2>Aktuálna aktivita</h2>
+        <div class="row">
+          <label>Typ: 
+            <select id="activityType">
+              <option value="running">Beh</option>
+              <option value="walking">Chôdza</option>
+              <option value="cycling">Bicykel</option>
+            </select>
+          </label>
         </div>
-    </div>
+        <div class="row metrics">
+          <div>
+            <div class="big" id="time">00:00:00</div>
+            <small>Čas</small>
+          </div>
+          <div>
+            <div class="big" id="distance">0.00 km</div>
+            <small>Vzdialenosť</small>
+          </div>
+          <div>
+            <div class="big" id="speed">0.0 km/h</div>
+            <small>Aktuálna rýchlosť</small>
+          </div>
+        </div>
 
-    <script>
-        // =========================
-        // Nastavenia krokov (GPS)
-        // =========================
-        let steps = 0;
-        const stepLength = 0.75; // dĺžka kroku v metroch
-        let prevLat = null;
-        let prevLon = null;
+        <div class="row controls">
+          <button id="startBtn">Štart</button>
+          <button id="stopBtn" disabled>Stop</button>
+          <button id="saveBtn" disabled>Uložiť</button>
+        </div>
 
-        function toRad(deg) {
-            return deg * (Math.PI / 180);
-        }
+        <div id="gpsStatus" class="status">GPS pripravené: čaká na štart</div>
+      </div>
 
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // polomer Zeme v metroch
-            const dLat = toRad(lat2 - lat1);
-            const dLon = toRad(lon2 - lon1);
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
+      <div class="card">
+        <h2>Snímky zdravia</h2>
+        <div class="row">
+          <label>Pulz (bpm):
+            <input type="number" id="hrInput" min="30" max="220" placeholder="72">
+          </label>
+        </div>
+        <div class="row">
+          <label>Kroky (manuálne):
+            <input type="number" id="stepsInput" min="0" placeholder="0">
+          </label>
+          <button id="saveSnapshot">Uložiť snímku</button>
+        </div>
+        <div id="lastSnapshot" class="status">Žiadne snímky</div>
+      </div>
+    </section>
 
-        function updatePosition(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
+    <section class="card">
+      <h2>Trasa (body)</h2>
+      <div id="points" class="points">Žiadne GPS body</div>
+      <div class="row">
+        <button id="downloadBtn" disabled>Stiahnuť trasu (JSON)</button>
+        <button id="clearBtn">Vymazať miestne údaje</button>
+      </div>
+      <small>Ak chceš zobraziť mapu, môžeš exportovať JSON a nahrať do Google Maps / iného nástroja.</small>
+    </section>
 
-            if (prevLat !== null && prevLon !== null) {
-                const distance = getDistance(prevLat, prevLon, lat, lon);
-                const newSteps = Math.floor(distance / stepLength);
-                if (newSteps > 0) {
-                    steps += newSteps;
-                    document.getElementById('steps').innerText = steps;
-                }
-            }
+    <section class="card">
+      <h2>História</h2>
+      <ul id="history"></ul>
+    </section>
+  </main>
 
-            prevLat = lat;
-            prevLon = lon;
-        }
-
-        if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(updatePosition, 
-                err => console.error(err),
-                { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
-            );
-        } else {
-            alert("Tvoje zariadenie nepodporuje GPS.");
-        }
-
-        // =========================
-        // Pripomienky
-        // =========================
-        function notifyUser(message) {
-            if (!("Notification" in window)) return;
-
-            if (Notification.permission === "granted") {
-                new Notification(message);
-            } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") new Notification(message);
-                });
-            }
-        }
-
-        setInterval(() => {
-            notifyUser("Čas na krátku prechádzku!");
-        }, 3600000); // každú hodinu
-
-        // =========================
-        // Antioxidant index
-        // =========================
-        function updateAntioxidant() {
-            const value = Math.floor(Math.random() * 100);
-            document.getElementById('antioxidant').innerText = value;
-        }
-
-        updateAntioxidant();
-
-        // =========================
-        // BMI Kalkulačka
-        // =========================
-        function calculateBMI() {
-            const height = parseFloat(document.getElementById('height').value) / 100; // cm → m
-            const weight = parseFloat(document.getElementById('weight').value);
-
-            if (isNaN(height) || isNaN(weight) || height <= 0 || weight <= 0) {
-                alert("Zadaj platnú výšku a váhu.");
-                return;
-            }
-
-            const bmi = weight / (height * height);
-            let category = "";
-
-            if (bmi < 18.5) category = "Podváha";
-            else if (bmi < 24.9) category = "Normálna váha";
-            else if (bmi < 29.9) category = "Nadváha";
-            else category = "Obezita";
-
-            document.getElementById('bmiResult').innerText = BMI: ${bmi.toFixed(1)} (${category});
-        }
-    </script>
+  <footer>
+    <small>Táto aplikácia je demo — vyžaduje povolenie GPS. Dáta sa ukladajú len lokálne (localStorage).</small>
+  </footer>
 </body>
 </html>
