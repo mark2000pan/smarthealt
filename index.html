@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Krokomer & Antioxidant & BMI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 2rem;
+            background-color: #f0f4f8;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        #dashboard {
+            margin-top: 2rem;
+        }
+        .metric {
+            font-size: 1.5rem;
+            margin: 1rem 0;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        input {
+            padding: 0.3rem;
+            width: 60px;
+            margin: 0 5px;
+            text-align: center;
+        }
+        .bmi-result {
+            margin-top: 0.5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fitness Dashboard</h1>
+
+    <div id="dashboard">
+        <div class="metric">Kroky: <span id="steps">0</span></div>
+        <div class="metric">Index antioxidantov: <span id="antioxidant">75</span></div>
+        <button onclick="updateAntioxidant()">Aktualizovať antioxidant</button>
+
+        <hr style="margin: 2rem 0;">
+
+        <div class="metric">
+            <h2>BMI Kalkulačka</h2>
+            <label>Výška (cm): <input type="number" id="height" placeholder="170"></label>
+            <label>Váha (kg): <input type="number" id="weight" placeholder="70"></label>
+            <button onclick="calculateBMI()">Spočítať BMI</button>
+            <div class="bmi-result" id="bmiResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // =========================
+        // Nastavenia krokov (GPS)
+        // =========================
+        let steps = 0;
+        const stepLength = 0.75; // dĺžka kroku v metroch
+        let prevLat = null;
+        let prevLon = null;
+
+        function toRad(deg) {
+            return deg * (Math.PI / 180);
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // polomer Zeme v metroch
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function updatePosition(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            if (prevLat !== null && prevLon !== null) {
+                const distance = getDistance(prevLat, prevLon, lat, lon);
+                const newSteps = Math.floor(distance / stepLength);
+                if (newSteps > 0) {
+                    steps += newSteps;
+                    document.getElementById('steps').innerText = steps;
+                }
+            }
+
+            prevLat = lat;
+            prevLon = lon;
+        }
+
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(updatePosition, 
+                err => console.error(err),
+                { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+            );
+        } else {
+            alert("Tvoje zariadenie nepodporuje GPS.");
+        }
+
+        // =========================
+        // Pripomienky
+        // =========================
+        function notifyUser(message) {
+            if (!("Notification" in window)) return;
+
+            if (Notification.permission === "granted") {
+                new Notification(message);
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") new Notification(message);
+                });
+            }
+        }
+
+        setInterval(() => {
+            notifyUser("Čas na krátku prechádzku!");
+        }, 3600000); // každú hodinu
+
+        // =========================
+        // Antioxidant index
+        // =========================
+        function updateAntioxidant() {
+            const value = Math.floor(Math.random() * 100);
+            document.getElementById('antioxidant').innerText = value;
+        }
+
+        updateAntioxidant();
+
+        // =========================
+        // BMI Kalkulačka
+        // =========================
+        function calculateBMI() {
+            const height = parseFloat(document.getElementById('height').value) / 100; // cm → m
+            const weight = parseFloat(document.getElementById('weight').value);
+
+            if (isNaN(height) || isNaN(weight) || height <= 0 || weight <= 0) {
+                alert("Zadaj platnú výšku a váhu.");
+                return;
+            }
+
+            const bmi = weight / (height * height);
+            let category = "";
+
+            if (bmi < 18.5) category = "Podváha";
+            else if (bmi < 24.9) category = "Normálna váha";
+            else if (bmi < 29.9) category = "Nadváha";
+            else category = "Obezita";
+
+            document.getElementById('bmiResult').innerText = BMI: ${bmi.toFixed(1)} (${category});
+        }
+    </script>
+</body>
+</html>
